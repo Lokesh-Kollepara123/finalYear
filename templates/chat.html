@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vision Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="new-chat-wrapper">
+        <form action="/" method="get">
+            <button type="submit" class="new-chat-btn">+ New Chat</button>
+        </form>
+    </div>
+
+    <div class="chat-container">
+        <h2>Image Chat Assistant</h2>
+
+        {% if not session_id %}
+        <form action="/start_chat" method="post" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required>
+            <button type="submit">Start Chat</button>
+        </form>
+        {% else %}
+        <div class="chat-box">
+            {% for msg in chat_log %}
+                <div class="user-msg"><strong>You:</strong> {{ msg.question }}</div>
+                <div class="bot-msg"><strong>Our Model:</strong> {{ msg.answer }}</div>
+            {% endfor %}
+        </div>
+        <form action="/ask_chat" method="post">
+            <input type="hidden" name="session_id" value="{{ session_id }}">
+            <input type="text" name="question" placeholder="Ask another question..." required>
+            <button type="submit">Send</button>
+        </form>
+        {% endif %}
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+    </div>
+</body>
+</html>
