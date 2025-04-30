@@ -14,12 +14,13 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Read API key from environment variable
-API_key = os.getenv("OPENAI_API_key")
-if not API_key:
-    raise ValueError(" environment variable not set.")
+# Read API key from environment variable - check multiple possible formats
+API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_API_key")
+if not API_KEY:
+    raise ValueError("OPENAI_API_KEY environment variable not set. Please check your environment configuration.")
 
-client = OpenAI(api_key=API_key)
+# Initialize OpenAI client
+client = openai.OpenAI(api_key=API_KEY)
 
 # Store sessions
 chat_sessions = {}  # session_id: { "image": base64, "mime": str, "chat_log": list[{"question", "answer"}] }
@@ -47,13 +48,11 @@ async def get_chat(request: Request):
 async def start_chat(request: Request, image: UploadFile = Form(...)):
     session_id = str(uuid4())
     base64_image = encode_image(image)
-
     chat_sessions[session_id] = {
         "image": base64_image,
         "mime": image.content_type,
         "chat_log": []
     }
-
     return templates.TemplateResponse("chat.html", {
         "request": request,
         "chat_log": [],
@@ -74,10 +73,9 @@ async def ask_chat(request: Request, session_id: str = Form(...), question: str 
         })
 
     image_url = f"data:{session['mime']};base64,{session['image']}"
-
     try:
         response = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4-vision-preview",  # Make sure to use a vision-capable model
             messages=[
                 {
                     "role": "system",
@@ -98,9 +96,7 @@ async def ask_chat(request: Request, session_id: str = Form(...), question: str 
             ],
             max_tokens=500,
         )
-
         answer = response.choices[0].message.content
-
         session["chat_log"].append({"question": question, "answer": answer})
         return templates.TemplateResponse("chat.html", {
             "request": request,
@@ -108,11 +104,18 @@ async def ask_chat(request: Request, session_id: str = Form(...), question: str 
             "session_id": session_id,
             "error": None
         })
-
     except Exception as e:
         return templates.TemplateResponse("chat.html", {
             "request": request,
             "chat_log": session["chat_log"],
             "session_id": session_id,
-            "error": str(e)
+            "error": f"OpenAI API error: {str(e)}"
         })
+
+# Optional: Add a simple endpoint to verify API key is loaded
+@app.get("/api_status")
+async def check_api_status():
+    if API_KEY:
+        masked_key = f"{API_KEY[:4]}...{API_KEY[-4:]}" if len(API_KEY) > 8 else "***"
+        return {"status": "API key found", "key_format": masked_key}
+    return {"status": "API key not found"}
