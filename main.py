@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory="templates")
 
 # Read API key from environment variable
 API_key = os.getenv("OPENAI_API_key")
-if not api_key:
+if not API_key:
     raise ValueError(" environment variable not set.")
 
 client = openai.OpenAI(api_key=API_key)
