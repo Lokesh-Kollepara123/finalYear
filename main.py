@@ -75,7 +75,7 @@ async def ask_chat(request: Request, session_id: str = Form(...), question: str 
     image_url = f"data:{session['mime']};base64,{session['image']}"
     try:
         response = client.chat.completions.create(
-            model="gpt-4-vision-preview",  # Make sure to use a vision-capable model
+            model="gpt-4-turbo",  # Make sure to use a vision-capable model
             messages=[
                 {
                     "role": "system",
