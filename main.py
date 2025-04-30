@@ -15,11 +15,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # Read API key from environment variable
-api_key = os.getenv("api_key")
+API_key = os.getenv("OPENAI_API_key")
 if not api_key:
     raise ValueError(" environment variable not set.")
 
-client = openai.OpenAI(api_key)
+client = openai.OpenAI(api_key=API_key)
 
 # Store sessions
 chat_sessions = {}  # session_id: { "image": base64, "mime": str, "chat_log": list[{"question", "answer"}] }
