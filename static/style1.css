@@ -1,0 +1,73 @@
+body {
+    background-color: #000000;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.intro-container {
+    text-align: center;
+    background-color: #222222;
+    padding: 40px;
+    border-radius: 12px;
+    max-width: 700px;
+    width: 100%;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.intro-container h1 {
+    font-size: 30px;
+    color: #00a884;
+}
+
+.subtitle {
+    font-size: 18px;
+    margin-top: 10px;
+    color: #e0e0e0;
+}
+
+ul {
+    text-align: left;
+    list-style-type: none;
+    padding: 0;
+}
+
+ul li {
+    font-size: 18px;
+    color: #ffffff;
+}
+
+.start-chat-btn {
+    background-color: #00a884;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 20px;
+}
+
+.start-chat-btn:hover {
+    background-color: #00795e;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 20px auto;
+    text-align: center; /* Center the text in each list item */
+    max-width: 500px; /* Optional: keeps the list from stretching too wide */
+}
+
+ul li {
+    font-size: 18px;
+    color: #ffffff;
+    padding: 4px 0;
+}
