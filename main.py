@@ -19,7 +19,7 @@ api_key = os.getenv("api_key")
 if not api_key:
     raise ValueError(" environment variable not set.")
 
-client = openai.OpenAI(api_key="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")
+client = openai.OpenAI(api_key)
 
 # Store sessions
 chat_sessions = {}  # session_id: { "image": base64, "mime": str, "chat_log": list[{"question", "answer"}] }
