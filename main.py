@@ -4,24 +4,35 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from uuid import uuid4
 import base64
+import os
 import openai
 
+# Initialize FastAPI app
 app = FastAPI()
+
+# Mount static and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-client = openai.OpenAI(api_key)
+# Read API key from environment variable
+api_key = os.getenv("api_key")
+if not api_key:
+    raise ValueError(" environment variable not set.")
+
+client = openai.OpenAI(api_key=api_key)
+
+# Store sessions
 chat_sessions = {}  # session_id: { "image": base64, "mime": str, "chat_log": list[{"question", "answer"}] }
 
 def encode_image(image: UploadFile) -> str:
     return base64.b64encode(image.file.read()).decode("utf-8")
 
-# Route for the opening page
+# Landing page
 @app.get("/", response_class=HTMLResponse)
 async def get_intro(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# Route for the chat page
+# Chat page
 @app.get("/chat", response_class=HTMLResponse)
 async def get_chat(request: Request):
     return templates.TemplateResponse("chat.html", {
@@ -31,6 +42,7 @@ async def get_chat(request: Request):
         "error": None
     })
 
+# Start new chat session
 @app.post("/start_chat", response_class=HTMLResponse)
 async def start_chat(request: Request, image: UploadFile = Form(...)):
     session_id = str(uuid4())
@@ -49,6 +61,7 @@ async def start_chat(request: Request, image: UploadFile = Form(...)):
         "error": None
     })
 
+# Ask question during session
 @app.post("/ask_chat", response_class=HTMLResponse)
 async def ask_chat(request: Request, session_id: str = Form(...), question: str = Form(...)):
     session = chat_sessions.get(session_id)
