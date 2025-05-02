@@ -12,7 +12,7 @@
     </div>
 
     <div class="chat-container">
-        <h2>PictoBot</h2>
+        <h2>Image Chat Assistant</h2>
 
         {% if not session_id %}
         <form action="/start_chat" method="post" enctype="multipart/form-data">
@@ -23,7 +23,18 @@
         <div class="chat-box">
             {% for msg in chat_log %}
                 <div class="user-msg"><strong>You:</strong> {{ msg.question }}</div>
-                <div class="bot-msg"><strong>Our Model:</strong> {{ msg.answer }}</div>
+                <div class="bot-msg">
+                    <strong>CLIP+Llama:</strong> {{ msg.answer['temp_0.0'] }}
+                </div>
+                <div class="bot-msg">
+                    <strong>DETR+Llama:</strong> {{ msg.answer['temp_0.4'] }}
+                </div>
+                <div class="bot-msg">
+                    <strong>BLIP+Llama:</strong> {{ msg.answer['temp_0.7'] }}
+                </div>
+                <div class="bot-msg slightly-wrong">
+                    <strong>VIT+Llama:</strong> {{ msg.answer['slightly_wrong'] }}
+                </div>
             {% endfor %}
         </div>
         <form action="/ask_chat" method="post">
