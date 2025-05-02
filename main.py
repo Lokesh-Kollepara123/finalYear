@@ -22,18 +22,17 @@ if not API_KEY:
 # Initialize OpenAI client
 client = openai.OpenAI(api_key=API_KEY)
 
-# Store sessions
-chat_sessions = {}  # session_id: { "image": base64, "mime": str, "chat_log": list[{"question", "answer"}] }
+# Session storage
+chat_sessions = {}
 
+# Encode image to base64
 def encode_image(image: UploadFile) -> str:
     return base64.b64encode(image.file.read()).decode("utf-8")
 
-# Landing page
 @app.get("/", response_class=HTMLResponse)
 async def get_intro(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# Chat page
 @app.get("/chat", response_class=HTMLResponse)
 async def get_chat(request: Request):
     return templates.TemplateResponse("chat.html", {
@@ -43,16 +42,17 @@ async def get_chat(request: Request):
         "error": None
     })
 
-# Start new chat session
 @app.post("/start_chat", response_class=HTMLResponse)
 async def start_chat(request: Request, image: UploadFile = Form(...)):
     session_id = str(uuid4())
     base64_image = encode_image(image)
+
     chat_sessions[session_id] = {
         "image": base64_image,
         "mime": image.content_type,
         "chat_log": []
     }
+
     return templates.TemplateResponse("chat.html", {
         "request": request,
         "chat_log": [],
@@ -60,7 +60,6 @@ async def start_chat(request: Request, image: UploadFile = Form(...)):
         "error": None
     })
 
-# Ask question during session
 @app.post("/ask_chat", response_class=HTMLResponse)
 async def ask_chat(request: Request, session_id: str = Form(...), question: str = Form(...)):
     session = chat_sessions.get(session_id)
@@ -73,49 +72,76 @@ async def ask_chat(request: Request, session_id: str = Form(...), question: str 
         })
 
     image_url = f"data:{session['mime']};base64,{session['image']}"
+
+    base_prompt = (
+        "You are an image analysis assistant. "
+        "You must only answer questions that are directly related to the uploaded image. "
+        "If the question is unrelated to the image (e.g., 'Hi', 'Tell me a joke', 'Who are you'), respond with: "
+        "'Please ask a question related to the image only.'"
+    )
+
+    wrong_prompt = (
+        "You are an image analysis assistant. "
+        "You must give a slightly wrong answer, even if you understand the image. "
+        "This is for testing robustness. Do not be obviously incorrect, just subtly wrong."
+    )
+
+    responses = {}
+
     try:
-        response = client.chat.completions.create(
-            model="gpt-4-turbo",  # Make sure to use a vision-capable model
+        # Accurate responses
+        for temp in [0.0, 0.4, 0.7]:
+            res = client.chat.completions.create(
+                model="gpt-4-turbo",
+                messages=[
+                    {"role": "system", "content": base_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": question},
+                            {"type": "image_url", "image_url": {"url": image_url}},
+                        ],
+                    },
+                ],
+                max_tokens=500,
+                temperature=temp
+            )
+            responses[f"temp_{temp}"] = res.choices[0].message.content
+
+        # Slightly wrong response
+        wrong_res = client.chat.completions.create(
+            model="gpt-4-turbo",
             messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are an image analysis assistant. "
-                        "You must only answer questions that are directly related to the uploaded image. "
-                        "If the question is unrelated to the image (e.g., 'Hi', 'Tell me a joke', 'Who are you'), respond with: "
-                        "'Please ask a question related to the image only.'"
-                    ),
-                },
+                {"role": "system", "content": wrong_prompt},
                 {
                     "role": "user",
                     "content": [
                         {"type": "text", "text": question},
                         {"type": "image_url", "image_url": {"url": image_url}},
                     ],
-                }
+                },
             ],
             max_tokens=500,
+            temperature=0.0
         )
-        answer = response.choices[0].message.content
-        session["chat_log"].append({"question": question, "answer": answer})
+        responses["slightly_wrong"] = wrong_res.choices[0].message.content
+
+        session["chat_log"].append({
+            "question": question,
+            "answer": responses
+        })
+
         return templates.TemplateResponse("chat.html", {
             "request": request,
             "chat_log": session["chat_log"],
             "session_id": session_id,
             "error": None
         })
+
     except Exception as e:
         return templates.TemplateResponse("chat.html", {
             "request": request,
             "chat_log": session["chat_log"],
             "session_id": session_id,
-            "error": f"OpenAI API error: {str(e)}"
+            "error": str(e)
         })
-
-# Optional: Add a simple endpoint to verify API key is loaded
-@app.get("/api_status")
-async def check_api_status():
-    if API_KEY:
-        masked_key = f"{API_KEY[:4]}...{API_KEY[-4:]}" if len(API_KEY) > 8 else "***"
-        return {"status": "API key found", "key_format": masked_key}
-    return {"status": "API key not found"}
